@@ -8,7 +8,7 @@ import sys
 s3 = boto3.resource('s3', config=Config(signature_version='s3v4'))
 
 num_files_to_check = 100
-max_file_size = 5000
+max_file_size = 10000
 num_props_before_found = 2
 num_found_before_continue = 5
 
@@ -17,7 +17,7 @@ last_names = []
 first_names = []
 
 def parse_text_for_mobile(text):
-    matches = re.findall(r'043[012]{1}[- ]?[0-9]{3}[- ]?[0-9]{3}', text)
+    matches = re.findall(r'04[0-9]{2}[- ]?[0-9]{3}[- ]?[0-9]{3}', text)
     return ','.join(matches)
 
 def parse_text_for_email(text):
@@ -27,7 +27,7 @@ def parse_text_for_email(text):
 def parse_text_for_address(text):
     matches = []
     for street_name in street_names:
-        if len(street_name) > 3 and street_name in text:
+        if len(street_name) > 5 and street_name in text:
             matches.append(street_name)
     return ','.join(matches)
 
@@ -41,9 +41,9 @@ def parse_text_for_full_name(text):
                 full_name =  last_name + ', ' + first_name
                 if full_name in text:
                     return full_name
-                # full_name =  last_name + ',' + first_name
-                # if full_name in text:
-                #     return full_name
+                full_name =  last_name + ',' + first_name
+                if full_name in text:
+                    return full_name
     return ''
 
 def parse_text_for_last_name(text):
