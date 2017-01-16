@@ -8,7 +8,7 @@ import sys
 s3 = boto3.resource('s3', config=Config(signature_version='s3v4'))
 
 num_files_to_check = 100
-max_file_size = 1000
+max_file_size = 5000
 num_props_before_found = 2
 num_found_before_continue = 5
 
@@ -18,21 +18,22 @@ first_names = []
 
 def parse_text_for_mobile(text):
     matches = re.findall(r'043[012]{1}[- ]?[0-9]{3}[- ]?[0-9]{3}', text)
-    return ''.join(matches)
+    return ','.join(matches)
 
 def parse_text_for_email(text):
     matches = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text)
-    return ''.join(matches)
+    return ','.join(matches)
 
 def parse_text_for_address(text):
+    matches = []
     for street_name in street_names:
-        if len(street_name) > 4 and street_name in text:
-            return street_name
-    return ''
+        if len(street_name) > 3 and street_name in text:
+            matches.append(street_name)
+    return ','.join(matches)
 
-def parse_text_for_name(text):
+def parse_text_for_full_name(text):
     for last_name in last_names:
-        if len(last_name) > 4 and last_name in text:
+        if len(last_name) > 3 and last_name in text:
             for first_name in first_names:
                 full_name = first_name + ' ' + last_name
                 if full_name in text:
@@ -40,10 +41,24 @@ def parse_text_for_name(text):
                 full_name =  last_name + ', ' + first_name
                 if full_name in text:
                     return full_name
-                full_name =  last_name + ',' + first_name
-                if full_name in text:
-                    return full_name
+                # full_name =  last_name + ',' + first_name
+                # if full_name in text:
+                #     return full_name
     return ''
+
+def parse_text_for_last_name(text):
+    matches = []
+    for last_name in last_names:
+        if len(last_name) > 3 and last_name in text:
+            matches.append(last_name)
+    return ','.join(matches)
+
+def parse_text_for_first_name(text):
+    matches = []
+    for first_name in first_names:
+        if len(first_name) > 3 and first_name in text:
+            matches.append(first_name)
+    return ','.join(matches)
 
 def parse_text_for_pii(text):
 
@@ -63,9 +78,17 @@ def parse_text_for_pii(text):
     if len(address) > 0:
         results['ADDRESS'] = address
 
-    name = parse_text_for_name(text)
-    if len(name) > 0:
-        results['NAME'] = name
+    full_name = parse_text_for_full_name(text)
+    if len(full_name) > 0:
+        results['FULL_NAME'] = full_name
+
+    # last_name = parse_text_for_last_name(text)
+    # if len(last_name) > 0:
+    #     results['LAST_NAME'] = last_name
+    #
+    # first_name = parse_text_for_first_name(text)
+    # if len(first_name) > 0:
+    #     results['FIRST_NAME'] = first_name
 
     return results
 
@@ -96,8 +119,6 @@ if __name__ == '__main__':
                 street_names.append(row[1] + ' LOOP')
             if row[2] == 'DR':
                 street_names.append(row[1] + ' DRIVE')
-            if row[2] == 'AVE':
-                street_names.append(row[1] + ' AVENUE')
             if row[2] == 'PL':
                 street_names.append(row[1] + ' PLACE')
             if row[2] == 'BLVD':
@@ -108,16 +129,14 @@ if __name__ == '__main__':
                 street_names.append(row[1] + ' RAMP')
             if row[2] == 'PLZ':
                 street_names.append(row[1] + ' PLAZA')
-            if row[2] == 'AVE':
-                street_names.append(row[1] + ' AVENUE')
 
     with open('lists/last-names.csv', 'rb') as csvfile:
         for row in csv.reader(csvfile, delimiter=' '):
             last_names.append(row[0])
 
-    with open('lists/first-names.csv', 'rb') as csvfile:
-        for row in csv.reader(csvfile, delimiter=' '):
-            first_names.append(row[0])
+    # with open('lists/first-names.csv', 'rb') as csvfile:
+    #     for row in csv.reader(csvfile, delimiter=' '):
+    #         first_names.append(row[0])
 
     print('listing s3 buckets...')
 
